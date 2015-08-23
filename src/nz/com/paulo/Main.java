@@ -2,9 +2,10 @@ package nz.com.paulo;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.RuntimeException;import java.lang.String;import java.net.URISyntaxException;
+import java.net.URISyntaxException;
 import java.net.URL;
-import java.nio.file.FileSystems;import java.nio.file.Files;import java.nio.file.Path;import java.nio.file.PathMatcher;import java.nio.file.Paths;import java.nio.file.attribute.BasicFileAttributes;
+import java.nio.file.*;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
