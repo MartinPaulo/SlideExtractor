@@ -33,8 +33,8 @@ public class Main {
     static final String LESSONS_DIRECTORY = defaultProps.getProperty("lessonsDirectory");
     static final String LESSONS_FILE_REGEX = defaultProps.getProperty("lessonsFileRegex");
 
-    static final String SLIDE_START_LINE = "<!-- slide -->";
-    static final String SLIDE_END_LINE = "<!-- slide end -->";
+    static final String SLIDE_START_LINE = "-- *Slide* --";
+    static final String SLIDE_END_LINE = "-- *Slide End* --";
 
     static final String SLIDES_INSERTION_LINE = "<!-- Slides go here -->";
 
