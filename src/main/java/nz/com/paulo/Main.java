@@ -1,5 +1,10 @@
 package nz.com.paulo;
 
+import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.inf.ArgumentParser;
+import net.sourceforge.argparse4j.inf.ArgumentParserException;
+import net.sourceforge.argparse4j.inf.Namespace;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URISyntaxException;
@@ -13,32 +18,11 @@ import java.util.function.BiPredicate;
 
 /**
  * A program that takes as input a set of markdown files and extract sections marked to be used as slides.
- * Those extracted sections are then wrapped witha appropriate html and injected into the template.html file
- * and written to an output directory: one set of slides per input file. These html files can be used with the reveal.js
- * framework to give a slideshow.
+ * Those extracted sections are then wrapped with an appropriate html wrapper and injected into the template
+ * file and written to an output directory: one set of slides per input file. These html files can be used
+ * with the reveal.js framework to give a slideshow.
  */
 public class Main {
-
-    static Properties defaultProps = new Properties();
-
-    static {
-        try (InputStream in = Main.class.getClassLoader().getResourceAsStream("SlideBuilder.properties")) {
-            defaultProps.load(in);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    static final String REVEAL_DIRECTORY = defaultProps.getProperty("revealDirectory");
-    static final String LESSONS_DIRECTORY = defaultProps.getProperty("lessonsDirectory");
-    static final String LESSONS_FILE_REGEX = defaultProps.getProperty("lessonsFileRegex");
-
-    static final String SLIDE_START_LINE = "-- *Slide* --";
-    static final String SLIDE_END_LINE = "-- *Slide End* --";
-
-    static final String SLIDES_INSERTION_LINE = "<!-- Slides go here -->";
-
-    static final Path lessonsDir = Paths.get(LESSONS_DIRECTORY);
 
     static class Slide {
         List<String> lines = new ArrayList<>();
@@ -64,9 +48,9 @@ public class Main {
         }
 
         void filterLine(String line) {
-            if (line.trim().equalsIgnoreCase(SLIDE_END_LINE)) {
+            if (line.trim().equalsIgnoreCase(Settings.SLIDE_END_LINE)) {
                 slideEnd();
-            } else if (line.trim().equalsIgnoreCase(SLIDE_START_LINE)) {
+            } else if (line.trim().equalsIgnoreCase(Settings.SLIDE_START_LINE)) {
                 slideStart();
             } else if (currentSlide != null) {
                 currentSlide.lines.add(line);
@@ -74,7 +58,7 @@ public class Main {
         }
 
         public void write() throws IOException, URISyntaxException {
-            URL url = Main.class.getClassLoader().getResource("template.html");
+            URL url = Main.class.getClassLoader().getResource(Settings.instance.getTemplate());
             List<String> template = Files.readAllLines(Paths.get(url.toURI()));
             List<String> lines = new ArrayList<>();
             lines.add("<style type=\"text/css\">.reveal ol {list-style-type: upper-alpha;}</style>");
@@ -83,20 +67,24 @@ public class Main {
                 lines.addAll(s.lines);
                 lines.add("</script></section>");
             });
-            int insertionPoint = template.indexOf(SLIDES_INSERTION_LINE);
+            int insertionPoint = template.indexOf(Settings.SLIDES_INSERTION_LINE) + 1;
             template.addAll(insertionPoint, lines);
-            Files.write(Paths.get(REVEAL_DIRECTORY + "/" + lessonName + ".html"), template);
+            String target = Settings.instance.getRevealDirectory() + "/" + lessonName + ".html";
+            System.out.println("Writing to: " + target);
+            Files.write(Paths.get(target), template);
         }
     }
 
     static final BiPredicate<Path, BasicFileAttributes> isLessonFile = (path, attrs) -> {
-        PathMatcher lessonMatcher = FileSystems.getDefault().getPathMatcher("glob:" + LESSONS_FILE_REGEX);
+        PathMatcher lessonMatcher = FileSystems.getDefault().getPathMatcher(
+                "glob:" + Settings.instance.getLessonsFileRegex());
         boolean isLesson = lessonMatcher.matches(path.getFileName());
         return attrs.isRegularFile() && isLesson;
     };
 
     private static void extractSlides(Path p) {
         try {
+            System.out.println("Working on: " + p);
             Presentation presentation = new Presentation(p.getFileName().toString());
             Files.lines(p).forEach(presentation::filterLine);
             presentation.write();
@@ -106,6 +94,18 @@ public class Main {
     }
 
     public static void main(String[] args) throws IOException {
-        Files.find(lessonsDir, 3, isLessonFile).forEach(Main::extractSlides);
+        ArgumentParser parser = ArgumentParsers.newArgumentParser("SlideExtractor").
+                description("Extracts reveal.js slides from markdown.");
+        parser.addArgument("-p", "--properties")
+                .required(true)
+                .help("the properties file to read the settings from");
+
+        try {
+            Namespace res = parser.parseArgs(args);
+            Settings.build(res.get("properties"));
+            Files.find(Settings.instance.getLessonsDir(), 3, isLessonFile).forEach(Main::extractSlides);
+        } catch (ArgumentParserException e) {
+            parser.handleError(e);
+        }
     }
 }
