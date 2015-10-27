@@ -61,7 +61,6 @@ public class Main {
             URL url = Main.class.getClassLoader().getResource(Settings.instance.getTemplate());
             List<String> template = Files.readAllLines(Paths.get(url.toURI()));
             List<String> lines = new ArrayList<>();
-            lines.add("<style type=\"text/css\">.reveal ol {list-style-type: upper-alpha;}</style>");
             slides.forEach((s) -> {
                 lines.add("<section data-markdown><script type=\"text/template\">");
                 lines.addAll(s.lines);
