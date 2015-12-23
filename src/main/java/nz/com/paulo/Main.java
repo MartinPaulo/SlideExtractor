@@ -92,19 +92,20 @@ public class Main {
         }
     }
 
-    public static void main(String[] args) throws IOException {
+    public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newArgumentParser("SlideExtractor").
                 description("Extracts reveal.js slides from markdown.");
         parser.addArgument("-p", "--properties")
                 .required(true)
                 .help("the properties file to read the settings from");
-
         try {
             Namespace res = parser.parseArgs(args);
             Settings.build(res.get("properties"));
             Files.find(Settings.instance.getLessonsDir(), 3, isLessonFile).forEach(Main::extractSlides);
         } catch (ArgumentParserException e) {
             parser.handleError(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 }
