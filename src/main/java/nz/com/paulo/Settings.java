@@ -1,5 +1,6 @@
 package nz.com.paulo;
 
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Path;
@@ -24,14 +25,11 @@ public final class Settings {
     private String template;
 
     private Settings(String propertiesFile) {
-            try (InputStream in = Main.class.getClassLoader().getResourceAsStream(propertiesFile)) {
-                if (in == null) {
-                    throw new RuntimeException("Could not read the resource file named " + propertiesFile);
-                }
-                defaultProps.load(in);
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        try (InputStream in = new FileInputStream(propertiesFile)) {
+            defaultProps.load(in);
+        } catch (IOException e) {
+            throw new RuntimeException("Could not read the resource file named " + propertiesFile, e);
+        }
     }
 
     static void build(String propertiesFile) {
