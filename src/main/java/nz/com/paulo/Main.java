@@ -68,8 +68,8 @@ public class Main {
         }
 
         public void writeToFile() throws IOException, URISyntaxException {
-            URL url = Main.class.getClassLoader().getResource(Settings.getSettings().getTemplate());
-            List<String> template = Files.readAllLines(Paths.get(url.toURI()));
+            Path templatePath = Paths.get(Settings.getSettings().getTemplate());
+            List<String> template = Files.readAllLines(templatePath);
             List<String> lines = new ArrayList<>();
             slides.forEach((s) -> {
                 lines.add("<section data-markdown><script type=\"text/template\">");
@@ -105,12 +105,17 @@ public class Main {
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newArgumentParser("SlideExtractor").
                 description("Extracts reveal.js slides from markdown.");
+        parser.addArgument("-d", "--workingdir")
+                .required(false)
+                .setDefault(".")
+                .help("the working directory (defaults to the current directory");
         parser.addArgument("-p", "--properties")
-                .required(true)
-                .help("the path of the properties file to read the settings from");
+                .required(false)
+                .setDefault("SlideExtractor.properties")
+                .help("the the properties file to read the settings from");
         try {
             Namespace res = parser.parseArgs(args);
-            Settings.build(res.get("properties"));
+            Settings.build(res.get("workingdir"), res.get("properties"));
             Files.find(Settings.getSettings().getLessonsDir(), 3, isLessonFile).forEach(Main::extractSlides);
         } catch (ArgumentParserException e) {
             parser.handleError(e);

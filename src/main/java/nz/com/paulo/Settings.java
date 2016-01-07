@@ -1,5 +1,6 @@
 package nz.com.paulo;
 
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -22,20 +23,26 @@ public final class Settings {
     private static Settings instance;
 
     private final Properties defaultProps = new Properties();
+    private final String baseDirectory;
 
-    private Settings(String propertiesFile) {
-        try (InputStream in = new FileInputStream(propertiesFile)) {
+    private Settings(String baseDirectory,String propertiesFile) {
+        if (!baseDirectory.endsWith(File.separator)) {
+            baseDirectory = baseDirectory + File.separator;
+        }
+        this.baseDirectory = baseDirectory;
+        try (InputStream in = new FileInputStream(baseDirectory + propertiesFile)) {
             defaultProps.load(in);
         } catch (IOException e) {
             throw new RuntimeException("Could not read the resource file named " + propertiesFile, e);
         }
     }
 
-    static void build(String propertiesFile) {
+
+    static void build(String baseDirectory, String propertiesFile) {
         if (instance != null) {
             throw new RuntimeException("You are trying to build the settings twice!");
         }
-        instance = new Settings(propertiesFile);
+        instance = new Settings(baseDirectory, propertiesFile);
     }
 
     static Settings getSettings() {
@@ -46,11 +53,11 @@ public final class Settings {
     }
 
     public String getRevealDirectory() {
-        return defaultProps.getProperty("revealDirectory");
+        return baseDirectory + defaultProps.getProperty("revealDirectory");
     }
 
     public String getLessonsDirectory() {
-        return defaultProps.getProperty("lessonsDirectory");
+        return baseDirectory + defaultProps.getProperty("lessonsDirectory");
     }
 
     public Path getLessonsDir() {
@@ -62,6 +69,6 @@ public final class Settings {
     }
 
     public String getTemplate() {
-        return defaultProps.getProperty("template");
+        return baseDirectory + defaultProps.getProperty("template");
     }
 }
