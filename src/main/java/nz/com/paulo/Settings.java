@@ -19,10 +19,9 @@ public final class Settings {
 
     static final String SLIDES_INSERTION_LINE = "<!-- Slides go here -->";
 
-    static Settings instance;
+    private static Settings instance;
 
     private final Properties defaultProps = new Properties();
-    private String template;
 
     private Settings(String propertiesFile) {
         try (InputStream in = new FileInputStream(propertiesFile)) {

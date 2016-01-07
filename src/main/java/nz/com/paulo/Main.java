@@ -23,14 +23,14 @@ import java.util.function.BiPredicate;
 public class Main {
 
     static class Slide {
-        List<String> lines = new ArrayList<>();
+        final List<String> lines = new ArrayList<>();
     }
 
     static class Presentation {
 
         private final String lessonName;
         Slide currentSlide;
-        List<Slide> slides = new ArrayList<>();
+        final List<Slide> slides = new ArrayList<>();
 
         public Presentation(String lessonName) {
             this.lessonName = lessonName.substring(0, lessonName.lastIndexOf('.'));
@@ -68,7 +68,7 @@ public class Main {
         }
 
         public void writeToFile() throws IOException, URISyntaxException {
-            URL url = Main.class.getClassLoader().getResource(Settings.instance.getTemplate());
+            URL url = Main.class.getClassLoader().getResource(Settings.getSettings().getTemplate());
             List<String> template = Files.readAllLines(Paths.get(url.toURI()));
             List<String> lines = new ArrayList<>();
             slides.forEach((s) -> {
@@ -78,15 +78,15 @@ public class Main {
             });
             int insertionPoint = template.indexOf(Settings.SLIDES_INSERTION_LINE) + 1;
             template.addAll(insertionPoint, lines);
-            String target = Settings.instance.getRevealDirectory() + "/" + lessonName + ".html";
+            String target = Settings.getSettings().getRevealDirectory() + "/" + lessonName + ".html";
             System.out.println("Writing to: " + target);
             Files.write(Paths.get(target), template);
         }
     }
 
-    static final BiPredicate<Path, BasicFileAttributes> isLessonFile = (path, attrs) -> {
+    static final private BiPredicate<Path, BasicFileAttributes> isLessonFile = (path, attrs) -> {
         PathMatcher lessonMatcher = FileSystems.getDefault().getPathMatcher(
-                "glob:" + Settings.instance.getLessonsFileRegex());
+                "glob:" + Settings.getSettings().getLessonsFileRegex());
         boolean isLesson = lessonMatcher.matches(path.getFileName());
         return attrs.isRegularFile() && isLesson;
     };
@@ -111,7 +111,7 @@ public class Main {
         try {
             Namespace res = parser.parseArgs(args);
             Settings.build(res.get("properties"));
-            Files.find(Settings.instance.getLessonsDir(), 3, isLessonFile).forEach(Main::extractSlides);
+            Files.find(Settings.getSettings().getLessonsDir(), 3, isLessonFile).forEach(Main::extractSlides);
         } catch (ArgumentParserException e) {
             parser.handleError(e);
         } catch (IOException e) {
