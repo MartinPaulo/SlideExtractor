@@ -6,14 +6,12 @@ import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Properties;
 import java.util.function.BiPredicate;
 
 /**
@@ -38,26 +36,38 @@ public class Main {
             this.lessonName = lessonName.substring(0, lessonName.lastIndexOf('.'));
         }
 
-        void slideStart() {
+        void createSlide() {
             currentSlide = new Slide();
         }
 
-        void slideEnd() {
+        void saveSlide() {
             slides.add(currentSlide);
             currentSlide = null;
         }
 
         void filterLine(String line) {
-            if (line.trim().equalsIgnoreCase(Settings.SLIDE_END_LINE)) {
-                slideEnd();
-            } else if (line.trim().equalsIgnoreCase(Settings.SLIDE_START_LINE)) {
-                slideStart();
-            } else if (currentSlide != null) {
+            if (isEndOfSlide(line)) {
+                saveSlide();
+            } else if (isStartOfSlide(line)) {
+                createSlide();
+            } else if (creatingSlide()) {
                 currentSlide.lines.add(line);
             }
         }
 
-        public void write() throws IOException, URISyntaxException {
+        private boolean creatingSlide() {
+            return currentSlide != null;
+        }
+
+        private boolean isStartOfSlide(String line) {
+            return line.trim().equalsIgnoreCase(Settings.SLIDE_START_LINE);
+        }
+
+        private boolean isEndOfSlide(String line) {
+            return line.trim().equalsIgnoreCase(Settings.SLIDE_END_LINE);
+        }
+
+        public void writeToFile() throws IOException, URISyntaxException {
             URL url = Main.class.getClassLoader().getResource(Settings.instance.getTemplate());
             List<String> template = Files.readAllLines(Paths.get(url.toURI()));
             List<String> lines = new ArrayList<>();
@@ -86,7 +96,7 @@ public class Main {
             System.out.println("Working on: " + p);
             Presentation presentation = new Presentation(p.getFileName().toString());
             Files.lines(p).forEach(presentation::filterLine);
-            presentation.write();
+            presentation.writeToFile();
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
         }
@@ -97,7 +107,7 @@ public class Main {
                 description("Extracts reveal.js slides from markdown.");
         parser.addArgument("-p", "--properties")
                 .required(true)
-                .help("the properties file to read the settings from");
+                .help("the path of the properties file to read the settings from");
         try {
             Namespace res = parser.parseArgs(args);
             Settings.build(res.get("properties"));
