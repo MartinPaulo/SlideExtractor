@@ -1,0 +1,5 @@
+target
+.gitignore
+.idea
+SlideExtractor.iml
+src/test
