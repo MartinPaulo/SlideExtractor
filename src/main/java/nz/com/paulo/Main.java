@@ -7,11 +7,9 @@ import net.sourceforge.argparse4j.inf.Namespace;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.net.URL;
 import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.*;
 import java.util.function.BiPredicate;
 
 /**
@@ -21,6 +19,8 @@ import java.util.function.BiPredicate;
  * with the reveal.js framework to give a slideshow.
  */
 public class Main {
+
+    private static Map<String, String> pagesWritten = new LinkedHashMap<>();
 
     static class Slide {
         final List<String> lines = new ArrayList<>();
@@ -78,9 +78,11 @@ public class Main {
             });
             int insertionPoint = template.indexOf(Settings.SLIDES_INSERTION_LINE) + 1;
             template.addAll(insertionPoint, lines);
-            String target = Settings.getSettings().getRevealDirectory() + "/" + lessonName + ".html";
+            String targetFileName = lessonName + ".html";
+            String target = Settings.getSettings().getRevealDirectory() + "/" + targetFileName;
             System.out.println("Writing to: " + target);
             Files.write(Paths.get(target), template);
+            pagesWritten.put(lessonName, targetFileName);
         }
     }
 
@@ -102,6 +104,21 @@ public class Main {
         }
     }
 
+    private static void writeIndexPage() throws IOException {
+        Path templatePath = Paths.get(Settings.getSettings().getTemplate());
+        List<String> template = Files.readAllLines(templatePath);
+        int insertionPoint = template.indexOf(Settings.SLIDES_INSERTION_LINE) + 1;
+        List<String> lines = new ArrayList<>();
+        lines.add("<ul>");
+        pagesWritten.forEach((k,v) -> lines.add("<li><a href=\"" + v + "#/\">" + k + "</a></li>"));
+        lines.add("</ul>");
+        template.addAll(insertionPoint, lines);
+        String targetFileName =  "index.html";
+        String target = Settings.getSettings().getRevealDirectory() + "/" + targetFileName;
+        System.out.println("Writing to: " + target);
+        Files.write(Paths.get(target), template);
+    }
+
     public static void main(String[] args) {
         ArgumentParser parser = ArgumentParsers.newArgumentParser("SlideExtractor").
                 description("Extracts reveal.js slides from markdown.");
@@ -117,10 +134,12 @@ public class Main {
             Namespace res = parser.parseArgs(args);
             Settings.build(res.get("workingdir"), res.get("properties"));
             Files.find(Settings.getSettings().getLessonsDir(), 3, isLessonFile).forEach(Main::extractSlides);
+            writeIndexPage();
         } catch (ArgumentParserException e) {
             parser.handleError(e);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
     }
+
 }
