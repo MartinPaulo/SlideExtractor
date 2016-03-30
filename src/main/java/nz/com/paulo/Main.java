@@ -1,6 +1,7 @@
 package nz.com.paulo;
 
 import net.sourceforge.argparse4j.ArgumentParsers;
+import net.sourceforge.argparse4j.impl.Arguments;
 import net.sourceforge.argparse4j.inf.ArgumentParser;
 import net.sourceforge.argparse4j.inf.ArgumentParserException;
 import net.sourceforge.argparse4j.inf.Namespace;
@@ -11,6 +12,7 @@ import java.nio.file.*;
 import java.nio.file.attribute.BasicFileAttributes;
 import java.util.*;
 import java.util.function.BiPredicate;
+import java.util.function.Consumer;
 
 /**
  * A program that takes as input a set of markdown files and extract sections marked to be used as slides.
@@ -20,6 +22,7 @@ import java.util.function.BiPredicate;
  */
 public class Main {
 
+    private static final String DEFAULT_PROPERTIES_FILE_NAME = "SlideExtractor.properties";
     private static Map<String, String> pagesWritten = new LinkedHashMap<>();
 
     static class Slide {
@@ -45,10 +48,18 @@ public class Main {
             currentSlide = null;
         }
 
-        void filterLine(String line) {
+        void filterLine(String line, int lineNo) {
             if (isEndOfSlide(line)) {
-                saveSlide();
+                if (!creatingSlide()) {
+                    System.out.println("Slide end found without slide start: line " + lineNo);
+                } else {
+                    saveSlide();
+                }
             } else if (isStartOfSlide(line)) {
+                if (creatingSlide()) {
+                    System.out.println("New slide start found whilst still creating slide: line " + lineNo);
+                    saveSlide();
+                }
                 createSlide();
             } else if (creatingSlide()) {
                 currentSlide.lines.add(line);
@@ -97,7 +108,15 @@ public class Main {
         try {
             System.out.println("Working on: " + p);
             Presentation presentation = new Presentation(p.getFileName().toString());
-            Files.lines(p).forEach(presentation::filterLine);
+            Files.lines(p).forEach(new Consumer<String>() {
+                int lineNo = 0;
+
+                @Override
+                public void accept(String line) {
+                    lineNo++;
+                    presentation.filterLine(line, lineNo);
+                }
+            });
             presentation.writeToFile();
         } catch (IOException | URISyntaxException e) {
             throw new RuntimeException(e);
@@ -110,26 +129,32 @@ public class Main {
         int insertionPoint = template.indexOf(Settings.SLIDES_INSERTION_LINE) + 1;
         List<String> lines = new ArrayList<>();
         lines.add("<ul>");
-        pagesWritten.forEach((k,v) -> lines.add("<li><a href=\"" + v + "#/\">" + k + "</a></li>"));
+        pagesWritten.forEach((k, v) -> lines.add("<li><a href=\"" + v + "#/\">" + k + "</a></li>"));
         lines.add("</ul>");
         template.addAll(insertionPoint, lines);
-        String targetFileName =  "index.html";
+        String targetFileName = "index.html";
         String target = Settings.getSettings().getRevealDirectory() + "/" + targetFileName;
         System.out.println("Writing to: " + target);
         Files.write(Paths.get(target), template);
     }
 
     public static void main(String[] args) {
-        ArgumentParser parser = ArgumentParsers.newArgumentParser("SlideExtractor").
-                description("Extracts reveal.js slides from markdown.");
+        ArgumentParser parser = ArgumentParsers.newArgumentParser("SlideExtractor")
+                .description("Extracts reveal.js slides from markdown.")
+                // following reads the manifest in the jar: if not in the jar, returns a version of null
+                .version("${prog} " + Main.class.getPackage().getImplementationVersion());
         parser.addArgument("-d", "--workingdir")
                 .required(false)
                 .setDefault(".")
-                .help("the working directory (defaults to the current directory");
+                .help("the working directory (defaults to the current directory)");
         parser.addArgument("-p", "--properties")
                 .required(false)
-                .setDefault("SlideExtractor.properties")
-                .help("the the properties file to read the settings from");
+                .setDefault(DEFAULT_PROPERTIES_FILE_NAME)
+                .help("the properties file to read the settings from (defaults to " + DEFAULT_PROPERTIES_FILE_NAME + ")");
+        parser.addArgument("-v", "--version")
+                .required(false)
+                .help("print the version number of the application and exit")
+                .action(Arguments.version());
         try {
             Namespace res = parser.parseArgs(args);
             Settings.build(res.get("workingdir"), res.get("properties"));
