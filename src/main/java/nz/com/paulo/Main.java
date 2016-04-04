@@ -31,6 +31,8 @@ public class Main {
 
     static class Presentation {
 
+        /* If slide with more than this number of lines is found a warning is emitted. */
+        private static final int MAX_SLIDE_LENGTH = 22;
         private final String lessonName;
         Slide currentSlide;
         final List<Slide> slides = new ArrayList<>();
@@ -43,7 +45,10 @@ public class Main {
             currentSlide = new Slide();
         }
 
-        void saveSlide() {
+        void saveSlide(int lineNo) {
+            if (currentSlide.lines.size() > MAX_SLIDE_LENGTH) {
+                System.out.println("Warning. Long slide with "+ currentSlide.lines.size()+ " lines found: line " + lineNo);
+            }
             slides.add(currentSlide);
             currentSlide = null;
         }
@@ -51,14 +56,14 @@ public class Main {
         void filterLine(String line, int lineNo) {
             if (isEndOfSlide(line)) {
                 if (!creatingSlide()) {
-                    System.out.println("Slide end found without slide start: line " + lineNo);
+                    System.out.println("Error! Slide end found without slide start: line " + lineNo);
                 } else {
-                    saveSlide();
+                    saveSlide(lineNo);
                 }
             } else if (isStartOfSlide(line)) {
                 if (creatingSlide()) {
-                    System.out.println("New slide start found whilst still creating slide: line " + lineNo);
-                    saveSlide();
+                    System.out.println("Error! New slide start found whilst still creating slide: line " + lineNo);
+                    saveSlide(lineNo);
                 }
                 createSlide();
             } else if (creatingSlide()) {
