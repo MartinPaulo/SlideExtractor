@@ -158,6 +158,12 @@ object Main {
         Files.write(Paths.get(target), template)
     }
 
+    private fun deleteOldPresentation(presentationPath: String) {
+        println("Deleting old files in $presentationPath")
+        val allFiles = File(presentationPath).listFiles()
+        allFiles.forEach { f -> if (f.isFile) {f.delete()} }
+    }
+
     @JvmStatic
     fun main(args: Array<String>) {
         val parser = ArgumentParsers.newArgumentParser("SlideExtractor")
@@ -193,6 +199,7 @@ object Main {
             } else {
                 println("Required library reveal.js is present.")
             }
+            deleteOldPresentation(Settings.settings.revealDirectory)
             Files.find(Settings.settings.lessonsDir, 3, isLessonFile).forEach { extractSlides(it) }
             writeIndexPage()
         } catch (e: ArgumentParserException) {

@@ -51,7 +51,6 @@ class Settings private constructor(base_Directory: String, propertiesFile: Strin
 
     companion object {
 
-
         internal const val SLIDE_START_LINE = "-- *Slide* --"
         internal const val SLIDE_END_LINE = "-- *Slide End* --"
 
@@ -64,9 +63,5 @@ class Settings private constructor(base_Directory: String, propertiesFile: Strin
             settings = Settings(baseDirectory, propertiesFile)
         }
 
-//        internal val settings: Settings
-//            get() {
-//                return settings
-//            }
     }
 }
