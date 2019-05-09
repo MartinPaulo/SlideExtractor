@@ -5,7 +5,7 @@ import java.io.FileInputStream
 import java.io.IOException
 import java.nio.file.Path
 import java.nio.file.Paths
-import java.util.Properties
+import java.util.*
 
 /**
  * The application settings
@@ -14,6 +14,7 @@ import java.util.Properties
 class Settings private constructor(base_Directory: String, propertiesFile: String) {
 
     private val defaultProps = Properties()
+    private val applicationProperties = Properties()
     private val baseDirectory: String
 
     val revealDirectory: String
@@ -21,6 +22,9 @@ class Settings private constructor(base_Directory: String, propertiesFile: Strin
 
     private val lessonsDirectory: String
         get() = baseDirectory + defaultProps.getProperty("lessonsDirectory")
+
+    val version: String
+        get() = applicationProperties.getProperty("version")
 
     val lessonsDir: Path
         get() = Paths.get(lessonsDirectory)
@@ -32,6 +36,7 @@ class Settings private constructor(base_Directory: String, propertiesFile: Strin
         get() = baseDirectory + defaultProps.getProperty("template")
 
     init {
+        applicationProperties.load(Settings::class.java.classLoader.getResourceAsStream("application.properties"))
         var baseDirectory = base_Directory
         if (!baseDirectory.endsWith(File.separator)) {
             baseDirectory += File.separator
@@ -42,7 +47,6 @@ class Settings private constructor(base_Directory: String, propertiesFile: Strin
         } catch (e: IOException) {
             throw RuntimeException("Could not read the resource file named $propertiesFile", e)
         }
-
     }
 
     companion object {
@@ -53,16 +57,16 @@ class Settings private constructor(base_Directory: String, propertiesFile: Strin
 
         internal const val SLIDES_INSERTION_LINE = "<!-- Slides go here -->"
 
-        private lateinit var instance: Settings
+        lateinit var settings: Settings
 
 
         internal fun build(baseDirectory: String, propertiesFile: String) {
-            instance = Settings(baseDirectory, propertiesFile)
+            settings = Settings(baseDirectory, propertiesFile)
         }
 
-        internal val settings: Settings
-            get() {
-                return instance
-            }
+//        internal val settings: Settings
+//            get() {
+//                return settings
+//            }
     }
 }

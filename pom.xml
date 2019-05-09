@@ -6,10 +6,10 @@
 
     <groupId>groupId</groupId>
     <artifactId>SlideExtractor</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
 
     <properties>
-        <kotlin.version>1.3.21</kotlin.version>
+        <kotlin.version>1.3.31</kotlin.version>
         <main.class>nz.com.paulo.Main</main.class>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
@@ -31,9 +31,22 @@
             <version>${kotlin.version}</version>
             <scope>test</scope>
         </dependency>
+        <!-- https://mvnrepository.com/artifact/com.github.ajalt/mordant -->
+        <dependency>
+            <groupId>com.github.ajalt</groupId>
+            <artifactId>mordant</artifactId>
+            <version>1.2.1</version>
+        </dependency>
+
     </dependencies>
 
     <build>
+        <resources>
+            <resource>
+                <directory>src/main/resources/</directory>
+                <filtering>true</filtering>
+            </resource>
+        </resources>
         <plugins>
             <plugin>
                 <artifactId>maven-assembly-plugin</artifactId>

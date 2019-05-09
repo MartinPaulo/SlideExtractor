@@ -1,9 +1,12 @@
 package nz.com.paulo
 
+import com.github.ajalt.mordant.TermColors
 import net.sourceforge.argparse4j.ArgumentParsers
 import net.sourceforge.argparse4j.impl.Arguments
 import net.sourceforge.argparse4j.inf.ArgumentParserException
+import java.io.File
 import java.io.IOException
+import java.lang.System.exit
 import java.net.URISyntaxException
 import java.nio.file.FileSystems
 import java.nio.file.Files
@@ -32,6 +35,12 @@ object Main {
         attrs.isRegularFile && isLesson
     }
 
+    private fun printError(message: String) {
+        with(TermColors()) {
+            println("${red(bold("Error!"))} ${reset(message)}")
+        }
+    }
+
     internal class Slide {
         val lines: MutableList<String> = ArrayList()
     }
@@ -56,13 +65,13 @@ object Main {
         fun filterLine(line: String, lineNo: Int) {
             if (isEndOfSlide(line)) {
                 if (!creatingSlide()) {
-                    println("Error! Slide end found without slide start: line $lineNo")
+                    printError("Slide end found without slide start: line $lineNo")
                 } else {
                     saveSlide(lineNo)
                 }
             } else if (isStartOfSlide(line)) {
                 if (creatingSlide()) {
-                    println("Error! New slide start found whilst still creating slide: line $lineNo")
+                    printError("New slide start found whilst still creating slide: line $lineNo")
                     saveSlide(lineNo)
                 }
                 createSlide()
@@ -85,6 +94,9 @@ object Main {
 
         @Throws(IOException::class, URISyntaxException::class)
         fun writeToFile() {
+            if (creatingSlide()) {
+                printError("Slides being saved without last slide being properly closed!")
+            }
             val templatePath = Paths.get(Settings.settings.template)
             val template = Files.readAllLines(templatePath)
             val lines = ArrayList<String>()
@@ -137,7 +149,7 @@ object Main {
         val insertionPoint = template.indexOf(Settings.SLIDES_INSERTION_LINE) + 1
         val lines = ArrayList<String>()
         lines.add("<ul>")
-        pagesWritten.forEach { k, v -> lines.add("<li><a href=\"$v#/\">$k</a></li>") }
+        pagesWritten.forEach { (k, v) -> lines.add("<li><a href=\"$v#/\">$k</a></li>") }
         lines.add("</ul>")
         template.addAll(insertionPoint, lines)
         val targetFileName = "index.html"
@@ -166,7 +178,21 @@ object Main {
                 .action(Arguments.version())
         try {
             val res = parser.parseArgs(args)
+            println("Working directory is: ${res.get<String>("workingdir")}")
             Settings.build(res.get("workingdir"), res.get("properties"))
+            println("SlideExtractor version: ${Settings.settings.version}")
+            println("Checking for presence of reveal.js...")
+            val file = File("${Settings.settings.revealDirectory}/reveal.js/README.md")
+            if (!file.exists()) {
+                printError("Could not find reveal.js. Have you forgotten to check it out?")
+                println("If so, run ${System.getProperty("line.separator")}" +
+                        "   git submodule init${System.getProperty("line.separator")}" +
+                        "   git submodule update${System.getProperty("line.separator")}" +
+                        "to fetch it...")
+                exit(1)
+            } else {
+                println("Required library reveal.js is present.")
+            }
             Files.find(Settings.settings.lessonsDir, 3, isLessonFile).forEach { extractSlides(it) }
             writeIndexPage()
         } catch (e: ArgumentParserException) {
