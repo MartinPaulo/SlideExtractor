@@ -9,7 +9,7 @@ BTW, an interesting idea from software carpentry:
 ##Live log
 
 <a href="https://douglatornell.github.io/2015-09-22-ubc/">The University of British Columbia</a>
-had a live log of shell commands ona web page. This is how they did it:
+had a live log of shell commands on a web page. This is how they did it:
 
 ```bash
 cat > live-log.sh <<- EndOfMessage
